@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
-from concurrent.futures import ProcessPoolExecutor
 
 start_time = time.perf_counter()
 
@@ -73,17 +72,15 @@ def global_lagrange_interpolation(x, x_nodes, y_nodes):
         y += y_nodes[i] * p
     return y
 
+
 global_lagrange_values = [global_lagrange_interpolation(x, x_nodes, y_nodes) for x in x_values]
-# Код для параллельной программы на всех потоках процессора для ускорения выполнения при большом количестве вычислений
+
+
 def compute_cubic_lagrange(x):
     return cubic_lagrange_interpolation(x, x_nodes, y_nodes)
 
 
-# для обчислення малої кількості значень:
 cubic_lagrange_values = [compute_cubic_lagrange(x) for x in x_values]
-# для обчислення великої кількості значень:
-# with ProcessPoolExecutor() as executor:
-#     cubic_lagrange_values = list(executor.map(compute_cubic_lagrange, x_values))
 
 # Построение графиков
 plt.plot(x_values, f(x_values), color='black', label='Original Function')
@@ -101,7 +98,8 @@ cubic_lagrange_values = np.array(cubic_lagrange_values)
 
 # Создаем таблицу данных
 table_data = {'x': x_values, 'f(x)': f(x_values).round(4),
-              'Cubic Lagrange Interpolation': cubic_lagrange_values.flatten().round(4), 'Global Lagrange Interpolation': global_lagrange_values}
+              'Cubic Lagrange Interpolation': cubic_lagrange_values.flatten().round(4),
+              'Global Lagrange Interpolation': global_lagrange_values}
 table = pd.DataFrame(table_data)
 pd.set_option('display.max_rows', None)
 print(table)
