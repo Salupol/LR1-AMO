@@ -1,110 +1,57 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import time
 
-start_time = time.perf_counter()
+# Initial data
+x_init = [-0.11, 0.11, 0.24, 0.36, 0.57, 0.66, 0.89, 1.1, 1.39, 1.6]
+y_init = [0.7764, 1.2382, 1.5394, 1.8374, 2.4101, 2.6780, 3.4356, 4.2396, 5.5884, 6.7991]
+x_args = np.arange(0, 1.5 + 0.01, 0.01)
 
-
-# Задана функция
-def f(x):
-    return float(3) ** x + np.sin(x)
-
-
-# Відрізок та крок
-start = 0
-end = 1.5
-h = 0.01
-
-# Генерація значень x на відрізку з кроком h
-x_values = np.arange(start, end + h, h)
-
-# Генерація вузлових значень функції
-x_nodes = np.arange(start, end + h, h)
-y_nodes = f(x_nodes)
+# Function values
+y_args_formula = [3 ** i + np.sin(i) for i in x_args]
 
 
-# Функція для обчислення кубічного полінома Лагранжа для даного вузлового відрізка
-def cubic_lagrange_interpolation(x, x_nodes, y_nodes):
-    n = len(x_nodes)
-    for i in range(n - 1):
-        if i + 2 < n and x_nodes[i] <= x <= x_nodes[i + 1]:
-            if i == 0:  # Если x близко к началу диапазона
-                x0, x1, x2 = x_nodes[i], x_nodes[i + 1], x_nodes[i + 2]
-                y0, y1, y2 = y_nodes[i], y_nodes[i + 1], y_nodes[i + 2]
-            elif i == n - 3:  # Если x близко к концу диапазона
-                x0, x1, x2 = x_nodes[i - 1], x_nodes[i], x_nodes[i + 1]
-                y0, y1, y2 = y_nodes[i - 1], y_nodes[i], y_nodes[i + 1]
-            else:
-                x0, x1, x2, x3 = x_nodes[i - 1], x_nodes[i], x_nodes[i + 1], x_nodes[i + 2]
-                y0, y1, y2, y3 = y_nodes[i - 1], y_nodes[i], y_nodes[i + 1], y_nodes[i + 2]
-            h = x1 - x0
-            a = (x1 - x) / h
-            b = (x - x0) / h
-            c = (x2 - x) / h
-            d = (x - x1) / h
-            p = a * y0 + b * y1 + (a ** 2 - a) * ((h ** 2) / 6) * y0 + (b ** 2 - b) * ((h ** 2) / 6) * y1
-            q = c * y1 + d * y2 + (c ** 2 - c) * ((h ** 2) / 6) * y1 + (d ** 2 - d) * ((h ** 2) / 6) * y2
-            return p + (q - p) * ((x - x0) / h)
-    if x == x_nodes[0]:  # Если x равно первому узлу
-        x0, x1, x2 = x_nodes[0], x_nodes[1], x_nodes[2]
-    elif x == x_nodes[-1]:  # Если x равно последнему узлу
-        x0, x1, x2 = x_nodes[-3], x_nodes[-2], x_nodes[-1]
-    y0, y1, y2 = f(x0), f(x1), f(x2)
-    h = x1 - x0
-    a = (x1 - x) / h
-    b = (x - x0) / h
-    c = (x2 - x) / h
-    d = (x - x1) / h
-    p = a * y0 + b * y1 + (a ** 2 - a) * ((h ** 2) / 6) * y0 + (b ** 2 - b) * ((h ** 2) / 6) * y1
-    q = c * y1 + d * y2 + (c ** 2 - c) * ((h ** 2) / 6) * y1 + (d ** 2 - d) * ((h ** 2) / 6) * y2
-    return p + (q - p) * ((x - x0) / h)
+# Interpolation functions
+def cubic_interpolation(x, y, x_args):
+    def find_closest_values(x_input):
+        for i in range(3, len(x)):
+            if x[i] >= x_input:
+                return x[i - 3:i + 1]
+        return x[-4:]
+
+    y_args_cubic = []
+    for x_input in x_args:
+        x_values = find_closest_values(x_input)
+        y_values = [y[x.index(x_val)] for x_val in x_values]
+        y_cubic = sum(
+            y_values[i] * np.prod([(x_input - x_values[j]) / (x_values[i] - x_values[j]) for j in range(4) if i != j])
+            for i in range(4))
+        y_args_cubic.append(y_cubic)
+    return y_args_cubic
 
 
-def global_lagrange_interpolation(x, x_nodes, y_nodes):
-    n = len(x_nodes)
-    y = 0
-    for i in range(n):
-        p = 1
-        for j in range(n):
-            if i != j:
-                p *= (x - x_nodes[j]) / (x_nodes[i] - x_nodes[j])
-        y += y_nodes[i] * p
-    return y
+def lagrange_interpolation(x, y, x_args):
+    y_args_lagrange = []
+    for x_input in x_args:
+        L = sum(
+            y[i] * np.prod([(x_input - x[j]) / (x[i] - x[j]) for j in range(len(x)) if i != j]) for i in range(len(x)))
+        y_args_lagrange.append(L)
+    return y_args_lagrange
 
 
-global_lagrange_values = [global_lagrange_interpolation(x, x_nodes, y_nodes) for x in x_values]
+# Interpolation results
+y_args_cubic = cubic_interpolation(x_init, y_init, x_args)
+y_args_lagrange = lagrange_interpolation(x_init, y_init, x_args)
 
-
-def compute_cubic_lagrange(x):
-    return cubic_lagrange_interpolation(x, x_nodes, y_nodes)
-
-
-cubic_lagrange_values = [compute_cubic_lagrange(x) for x in x_values]
-
-# Построение графиков
-plt.plot(x_values, f(x_values), color='black', label='Original Function')
-plt.plot(x_values, cubic_lagrange_values, color='purple', label='Cubic Lagrange Interpolation')
-plt.plot(x_values, global_lagrange_values, color='blue', label='Global Lagrange Interpolation')
-plt.scatter(x_nodes, y_nodes, color='red', label='Nodes', s=5, alpha=0.5)
+# Plotting
+plt.plot(x_args, y_args_formula, linewidth=3, label="initial formula")
+plt.plot(x_args, y_args_cubic, linewidth=3, label="cubic interpolation")
+plt.plot(x_args, y_args_lagrange, linewidth=3, label="lagrange interpolation")
+plt.plot(x_init, y_init, 'ro', label="initial values")
 plt.legend()
-plt.title('Cubic Lagrange Interpolation for f(x)')
-plt.xlabel('x')
-plt.ylabel('f(x)')
 plt.show()
 
-# Собираем результаты в массив numpy
-cubic_lagrange_values = np.array(cubic_lagrange_values)
-
-# Создаем таблицу данных
-table_data = {'x': x_values, 'f(x)': f(x_values).round(4),
-              'Cubic Lagrange Interpolation': cubic_lagrange_values.flatten().round(4),
-              'Global Lagrange Interpolation': global_lagrange_values}
-table = pd.DataFrame(table_data)
+# Results output
+df = pd.DataFrame({"x": x_args, "y_formula": y_args_formula, "y_cubic": y_args_cubic, "y_lagrange": y_args_lagrange})
 pd.set_option('display.max_rows', None)
-print(table)
-
-# Вывод времени выполнения программы.
-end_time = time.perf_counter()
-execution_time = end_time - start_time
-print(f"Execution time: {execution_time} seconds")
+print(df)
